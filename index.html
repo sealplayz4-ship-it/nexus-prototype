@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title> Nexus - CS Benchmark</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div id="topbar">
+
+    <div id="logo">Nexus</div>
+
+    <div id="navLinks">
+        <span id="navQuiz">Benchmark</span>
+        <span id="navLeaderboard">Leaderboard</span>
+    </div>
+
+</div>
+
+<div class="container">
+
+<div id="homeScreen" class = "screen">
+    <div class="home-card">
+    <h1>Nexus - CS Benchmark</h1>
+    <p>Benchmark your computer science aptitude and compare your reasoning across core CS domains.</p>
+    <p id = "introParagraph">What this benchmark measures: <br>
+
+• Data structures and algorithms <br>
+• Systems reasoning   <br>
+• Analytical Reasoning    <br>
+• Code comprehension  <br> <br>
+Pseudocode conventions: <br>
+
+• Ranges use interval notation. For example from (1 to 3] does not include 1 but does include 3.  <br>
+• Variables update sequentially   <br>
+• Assume standard execution flow unless stated otherwise <br>
+• Variables are passed by reference unless otherwise stated. <br>
+• Assume loops terminate if condition becomes false after update <br> <br>
+Please do not access outside resources when taking this test. Completion should take approximately 30 minutes. The assessment is experimental and feedback is appreciated.</p>
+<button id="startButton">Start</button>
+</div>
+</div>
+
+<div id="testScreen" class="screen hidden">
+    <div class="test-card">
+
+    <div id="progressContainer">
+        <div id="progressBar"></div>
+    </div>
+
+<p id="progressText"></p>
+    <h2 id="questionText"></h2>
+
+    <div id="answerButtons" class="answers-container"></div>
+
+    <button id="nextButton">Next</button>
+    </div>
+</div>
+
+<div id="resultScreen" class="screen hidden">
+    <div class="results-card">
+    <h1>Final Score</h1>
+    <p id="scoreText"></p> <br>
+    <p id="resultsText"></p> <br>
+    <button id="restartButton">Restart</button>
+    </div>
+</div>
+
+<div id="sectionScreen" class="screen hidden">
+    <div class="section-card">
+    <h1 id="sectionTitle"></h1>
+    <p id="sectionDescription"></p>
+    <button id="continueButton">Start Section</button>
+    </div>
+</div>
+
+<div id="leaderboardScreen" class="screen hidden">
+    <div class="leaderboard-card">
+
+        <h1>Top Performers</h1>
+
+        <div class="leaderboard-entry">
+            <h3>Sarah L.</h3>
+            <p>27/28 — Systems & Algorithms</p>
+        </div>
+
+        <div class="leaderboard-entry">
+            <h3>Michael R.</h3>
+            <p>25/28 — Backend Development</p>
+        </div>
+
+        <div class="leaderboard-entry">
+            <h3>Emily K.</h3>
+            <p>24/28 — Analytical Reasoning</p>
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+<script src="script.js"></script>
+</body>
+</html>

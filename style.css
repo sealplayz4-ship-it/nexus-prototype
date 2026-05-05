@@ -1,0 +1,275 @@
+body {
+    font-family: Inter, sans-serif;
+    margin: 0;
+    background-color: rgb(19, 19, 19);
+    color: white;
+    line-height: 2;
+    padding-top: 90px;
+
+    min-height: 100vh;
+}
+
+button {
+    padding: 12px 20px;
+    font-size: 16px;
+    margin-top: 10px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+button:hover {
+    background-color: #e8f2ff;
+    cursor: pointer;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+#answerButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    width: 320px;
+    min-height: 110px;
+
+        align-items: center;
+
+}
+
+.answer-btn {
+    width: 320px;
+    text-align: left;
+    padding: 12px 20px;
+}
+
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 600px;
+}
+
+.home-card {
+    width: 700px;
+    max-width: 90%;
+    padding: 40px;
+    background-color: #111;
+    border-radius: 16px;
+}
+
+#questionText {
+    margin-bottom: 30px;
+    min-height: 150px;
+    min-width: 95%;
+    opacity: 1;
+    transition: opacity 0.25s ease;
+}
+
+#nextButton {
+    align-self: flex-start;
+    padding: 12px 20px;
+    width: 140px;
+    margin-top: 30px;
+}
+
+.answers-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    align-items: center;
+}
+
+.test-card {
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+        opacity 250ms ease,
+        transform 250ms ease;
+
+    width: 100%;
+    max-width: 900px;
+    max-height: 85vh;
+    overflow-y: auto;
+    margin: 0 auto;
+
+    padding: 40px;
+
+    background-color: #111;
+
+    border-radius: 16px;
+}
+
+.card-hidden {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.section-card {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+
+    padding: 40px;
+
+    background-color: #111;
+
+    border-radius: 16px;
+}
+
+.section-card.fade-out {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.results-card {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+
+    padding: 40px;
+
+    background-color: #111;
+
+    border-radius: 16px;
+}
+
+.screen {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+        opacity 250ms ease,
+        transform 250ms ease;
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    padding: 5vh 0;
+    box-sizing: border-box;
+}
+
+.screen.fade-out {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.hidden {
+    display: none !important;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+.container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#progressContainer {
+    width: 100%;
+    height: 14px;
+
+    background-color: #2a2a2a;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+
+    margin-bottom: 15px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.4);
+}
+
+#progressBar {
+    height: 100%;
+    width: 0%;
+
+    background-color: #4f8cff;
+
+    border-radius: 10px;
+
+    transition: width 0.4s ease;
+}
+
+#progressText {
+    margin-bottom: 25px;
+    color: #bbb;
+}
+
+#topbar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+
+    height: 70px;
+
+    background-color: #111;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 0 40px;
+
+    box-sizing: border-box;
+
+    z-index: 1000;
+
+    border-bottom: 1px solid #222;
+}
+
+#logo {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+#navLinks {
+    display: flex;
+    gap: 30px;
+}
+
+#navLinks span {
+    cursor: pointer;
+    color: #ccc;
+
+    transition: color 0.2s ease;
+}
+
+#navLinks span:hover {
+    color: white;
+}
+
+.leaderboard-card {
+    width: 800px;
+    max-width: 90%;
+
+    background-color: #111;
+
+    padding: 40px;
+
+    border-radius: 16px;
+}
+
+.leaderboard-entry {
+    padding: 20px 0;
+
+    border-bottom: 1px solid #222;
+}
