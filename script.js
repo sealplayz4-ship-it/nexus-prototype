@@ -293,162 +293,138 @@ const questions = [
         correct: 2,
         section: "s"
     },
-    {
-        question: `x = 0
+{
+    question: "What is the value of x after this program runs? (easy)",
+    code: `x = 0
 
-        WHILE x < 10:
+WHILE x < 10:
+    x = x - 1`,
+    answers: [
+        "-10",
+        "10",
+        "0",
+        "This program loops infinitely"
+    ],
+    correct: 3,
+    section: "cc"
+},
 
-        x = x - 1 
+{
+    question: "What is printed? (easy)",
+    code: `score = 10
 
-        What is the value of x after this program runs? (easy)`,
-        answers: [
-            "-10",
-            "10",
-            "0",
-            "This program loops infinitely"
-        ],
-        correct: 3,
-        section: "cc"
-    },
-    {
-        question: `score = 10
+score = score + 5
 
-        score = score + 5
+score = score * 2
 
-        score = score * 2
+PRINT score`,
+    answers: [
+        "15",
+        "20",
+        "25",
+        "30"
+    ],
+    correct: 3,
+    section: "cc"
+},
 
+{
+    question: "What is printed? (medium)",
+    code: `x = 1
 
-        PRINT score 
+WHILE x < 10:
+    x = x * 2
 
+PRINT x`,
+    answers: [
+        "8",
+        "10",
+        "16",
+        "Infinite Loop"
+    ],
+    correct: 2,
+    section: "cc"
+},
 
-        What is printed? (easy)`,
-        answers: [
-            "15",
-            "20",
-            "25",
-            "30"
-        ],
-        correct: 3,
-        section: "cc"
-    },
-    {
-        question: `x = 1
+{
+    question: "What is printed? (medium)",
+    code: `count = 0
 
+FOR i FROM [1 TO 3]:
+    count = count + 1
 
-        WHILE x < 10:
+FOR i FROM [1 TO 2]:
+    count = count * 2
 
-        x = x * 2
+PRINT count`,
+    answers: [
+        "5",
+        "6",
+        "8",
+        "12"
+    ],
+    correct: 3,
+    section: "cc"
+},
 
+{
+    question: "What is the most likely outcome? (medium)",
+    code: `x = 0
 
-        PRINT x 
+WHILE x < 5:
+    x = x - 1
 
-        What is printed? (medium)`,
-        answers: [
-            "8",
-            "10",
-            "16",
-            "Infinite Loop"
-        ],
-        correct: 2,
-        section: "cc"
-    },
-    {
-        question: `count = 0
+PRINT x`,
+    answers: [
+        "The program prints 5",
+        "The program prints -5",
+        "The loop runs forever",
+        "The loop executes once"
+    ],
+    correct: 2,
+    section: "cc"
+},
 
+{
+    question: "What is printed? (hard)",
+    code: `total = 0
 
-        FOR i FROM [1 TO 3]:
+FOR i FROM [1 TO 3):
+    total = total + i
 
-        count = count + 1
+IF total > 3:
+    total = 0
 
+PRINT total`,
+    answers: [
+        "0",
+        "3",
+        "5",
+        "6"
+    ],
+    correct: 1,
+    section: "cc"
+},
 
-        FOR i FROM [1 TO 2]:
+{
+    question: "What is printed? (hard)",
+    code: `x = 5
 
-        count = count * 2
+FUNCTION update(value):
+    value = value + 3
 
+update(x)
 
-        PRINT count
-
-        What is printed? (medium)`,
-        answers: [
-            "5",
-            "6",
-            "8",
-            "12"
-        ],
-        correct: 3,
-        section: "cc"
-    },
-    {
-        question: `x = 0
-
-
-        WHILE x < 5:
-
-        x = x - 1
-
-
-        PRINT x
-
-        What is the most likely outcome? (medium)`,
-        answers: [
-            "The program prints 5",
-            "The program prints -5",
-            "The loop runs forever",
-            "The loop executes once"
-        ],
-        correct: 2,
-        section: "cc"
-    },
-    {
-        question: `total = 0
-
-
-        FOR [i FROM 1 TO 3):
-
-        total = total + i
-
-
-        IF total > 3:
-
-       total = 0
-
-
-        PRINT total
-
-        What is printed? (hard)`,
-        answers: [
-            "0",
-            "3",
-            "5",
-            "6"
-        ],
-        correct: 1,
-        section: "cc"
-    },
-        {
-        question: `x = 5
-
-
-        FUNCTION update(value):
-
-        value = value + 3
-
-
-        update(x)
-
-
-        PRINT x
-
-        What is printed? (hard)`,
-        answers: [
-            "5",
-            "8",
-            "3",
-            "An error occurs"
-        ],
-        correct: 0,
-        section: "cc"
-    },
+PRINT x`,
+    answers: [
+        "5",
+        "8",
+        "3",
+        "An error occurs"
+    ],
+    correct: 0,
+    section: "cc"
+},
 ];
 
 const sections = [
@@ -536,6 +512,16 @@ function loadQuestion(animated = true) {
     function populateQuestion() {
 
         questionEl.textContent = question.question;
+
+        const codeBlock = document.getElementById("codeBlock");
+
+if (question.code) {
+    codeBlock.textContent = question.code;
+    codeBlock.classList.remove("hidden");
+} else {
+    codeBlock.textContent = "";
+    codeBlock.classList.add("hidden");
+}
 
         answerButtons.innerHTML = "";
 
@@ -638,6 +624,60 @@ function updateProgressBar() {
         `Question ${currentQuestion + 1} / ${questions.length}`;
 }
 
+function showResults() {
+    const scoreText = document.getElementById("scoreText");
+    const performanceText = document.getElementById("performanceText");
+    const categoryResults = document.getElementById("categoryResults");
+    const recommendationText = document.getElementById("recommendationText");
+
+    scoreText.textContent = `${score}/${questions.length}`;
+
+    if (score > 25) {
+        performanceText.textContent = "Very strong overall performance.";
+    } else if (score > 20) {
+        performanceText.textContent = "Strong overall performance.";
+    } else if (score > 15) {
+        performanceText.textContent = "Average overall performance.";
+    } else {
+        performanceText.textContent = "Beginner level overall performance.";
+    }
+
+    const categoryNames = {
+        ar: "Analytical Reasoning",
+        ds: "Data Structures & Algorithms",
+        s: "Systems",
+        cc: "Code Comprehension"
+    };
+
+    categoryResults.innerHTML = "";
+
+    for (const [key, value] of Object.entries(sectionScores)) {
+        const percent = (value / 7) * 100;
+
+        const row = document.createElement("div");
+        row.classList.add("category-row");
+
+        row.innerHTML = `
+            <div class="category-label">
+                <span>${categoryNames[key]}</span>
+                <span>${value} / 7</span>
+            </div>
+
+            <div class="category-bar-bg">
+                <div class="category-bar-fill" style="width: ${percent}%"></div>
+            </div>
+        `;
+
+        categoryResults.appendChild(row);
+    }
+
+    const weakestCategory = Object.entries(sectionScores)
+        .sort((a, b) => a[1] - b[1])[0][0];
+
+    recommendationText.textContent =
+        `Recommended focus: ${categoryNames[weakestCategory]}.`;
+}
+
 const screens = {
     home: document.getElementById("homeScreen"),
     test: document.getElementById("testScreen"),
@@ -669,24 +709,7 @@ document.getElementById("nextButton")
         selectedAnswer = null;
     }
     else {
-    switchScreen(screens.test, screens.result);
-    document.getElementById("scoreText")
-        .textContent = `${score} / ${questions.length}`;
-    if (score > 25) {
-        scoreStrength = "Very strong"
-    }
-    else if (score > 20) {
-        scoreStrength = "Strong"
-    }
-    else if (score > 15) {
-        scoreStrength = "Average"
-    }
-    else {
-        scoreStrength = "Weak"
-    }
-    document.getElementById("resultsText")
-        .textContent = `${scoreStrength} overall performance. \n You demonstrated especially strong ${findBestCategory()} skills. \n \n Analytical reasoning: (${sectionScores["ar"]}/7) \n Data structures: (${sectionScores["ds"]}/7) \n Systems: (${sectionScores["s"]}/7) \n Code comprehension: (${sectionScores["cc"]}/7) \n Future versions will include percentile rankings and peer comparison.`;
-
+    switchScreen(screens.test, screens.result, showResults);
     return;
     }
     const newSection = getCurrentSection();
