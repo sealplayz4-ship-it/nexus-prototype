@@ -25,8 +25,9 @@
 
 <div id="homeScreen" class = "screen">
     <div class="home-card">
-    <h1>Nexus - CS Benchmark</h1>
-    <p>Benchmark your computer science aptitude and compare your reasoning across core CS domains.</p>
+    <h1 id = "title">Nexus - CS Benchmark</h1>
+    <p>Benchmark your aptitude across core CS domains.<br>
+    Compare your results to other students.</p>
     <p id = "introParagraph">What this benchmark measures: <br>
 
 • Data structures and algorithms <br>
@@ -55,6 +56,8 @@ Please do not access outside resources when taking this test. Completion should 
 <p id="progressText"></p>
     <h2 id="questionText"></h2>
 
+    <pre id="codeBlock" class="hidden"></pre>
+
     <div id="answerButtons" class="answers-container"></div>
 
     <button id="nextButton">Next</button>
@@ -63,10 +66,26 @@ Please do not access outside resources when taking this test. Completion should 
 
 <div id="resultScreen" class="screen hidden">
     <div class="results-card">
-    <h1>Final Score</h1>
-    <p id="scoreText"></p> <br>
-    <p id="resultsText"></p> <br>
-    <button id="restartButton">Restart</button>
+<h1>Final Score</h1>
+
+<div id="scoreCircle">
+    <span id="scoreText"></span>
+</div>
+
+<p id="performanceText"></p>
+
+<h2>Category Breakdown</h2>
+
+<div id="categoryResults"></div>
+
+<h2>Recommended Focus</h2>
+<p id="recommendationText"></p>
+
+<p class="future-note">
+    Future versions will include percentile rankings, profiles, and peer comparison.
+</p>
+
+<button id="restartButton">Restart</button>
     </div>
 </div>
 
