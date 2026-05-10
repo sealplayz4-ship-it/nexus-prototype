@@ -470,6 +470,15 @@ let scoreStrength = null;
 let selectedAnswer = null;
 let previousSection = "ar";
 
+let supabaseUrl = "https://qhihhbdhlpowflzfdoqo.supabase.co";
+let supabaseKey = "sb_publishable_dlNHRTBRY2F3WvMiLc9iug_iokeJBLR";
+
+const supabaseClient = supabase.createClient(
+    supabaseUrl,
+    supabaseKey);
+
+console.log("Supabase client created");
+
 const questionEl = document.getElementById("questionText");
 const answerButtons = document.getElementById("answerButtons");
 
@@ -762,3 +771,4 @@ document.getElementById("navLeaderboard")
 .addEventListener("click", () => {
     switchScreen(activeScreen, screens.leaderboard);
 });
+
