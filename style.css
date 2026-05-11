@@ -60,7 +60,6 @@ button:active {
     background-color: #111;
     padding: 30px;
     border-radius: 12px;
-    width: 600px;
 }
 
 .home-card {
@@ -357,8 +356,8 @@ html, body {
 }
 
 .auth-card {
-    max-width: 480px;
-    width: 100%;
+    width: 480px;
+    max-width: 90%;
 
     background-color: #161616;
     box-shadow: 0 0 30px rgba(0,0,0,0.35);
