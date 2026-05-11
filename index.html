@@ -19,6 +19,7 @@
         <span id="navLeaderboard">Leaderboard</span>
         <span id="navAuth">Sign In</span>
         <span id="profileNavButton" class="hidden" >Profile</span>
+        <span id="inboxNavButton" class="hidden">Inbox</span>
         <span id="signOutNavButton" class="hidden" >Sign Out</span>
     </div>
 
@@ -112,26 +113,11 @@ Please do not access outside resources when taking this test. Completion should 
 
 <div id="leaderboardScreen" class="screen hidden">
     <div class="leaderboard-card">
+        <h1>Leaderboard</h1>
+        <p class="subtle">Top saved Nexus benchmark scores.</p>
 
-        <h1>Top Performers</h1>
-
-        <div class="leaderboard-entry">
-            <h3>Sarah L.</h3>
-            <p>27/28 — Systems & Algorithms</p>
-        </div>
-
-        <div class="leaderboard-entry">
-            <h3>Michael R.</h3>
-            <p>25/28 — Backend Development</p>
-        </div>
-
-        <div class="leaderboard-entry">
-            <h3>Emily K.</h3>
-            <p>24/28 — Analytical Reasoning</p>
-        </div>
-
+        <div id="leaderboardList"></div>
     </div>
-
 </div>
 
 <div id="authScreen" class="screen hidden">
@@ -202,6 +188,57 @@ Please do not access outside resources when taking this test. Completion should 
             <div id="previousScoresList"></div>
         </div>
 
+    </div>
+</section>
+
+<section id="publicProfileScreen" class="screen hidden">
+    <div class="card profile-card">
+        <h1 id="publicDisplayName"></h1>
+        <p id="publicUsername" class="subtle"></p>
+
+        <p><strong>School:</strong> <span id="publicSchool"></span></p>
+        <p><strong>Major:</strong> <span id="publicMajor"></span></p>
+        <p><strong>Interests:</strong> <span id="publicInterests"></span></p>
+
+        <h2>Bio</h2>
+        <p id="publicBio" class="subtle"></p>
+
+        <button onclick="switchScreen(activeScreen, screens.leaderboard)">Back to Leaderboard</button>
+
+        <div class="message-box">
+        <h2>Send Message</h2>
+        <textarea id="publicMessageText" placeholder="Write a message..."></textarea>
+        <button onclick="sendMessageToPublicProfile()">Send Message</button>
+        <p id="publicMessageStatus" class="subtle"></p>
+</div>
+    </div>
+</section>
+
+<section id="inboxScreen" class="screen hidden">
+    <div class="card inbox-card">
+        <h1>Inbox</h1>
+        <p class="subtle">Messages from other Nexus users.</p>
+
+        <div id="inboxList"></div>
+    </div>
+</section>
+
+<section id="threadScreen" class="screen hidden">
+    <div class="card inbox-thread-card">
+    <button class="back-link" onclick="openInbox()">← Back to Inbox</button>
+        <h1 id="threadTitle">Conversation</h1>
+
+        <div id="threadMessages"></div>
+
+<div class="message-box">
+    <textarea id="threadReplyText" placeholder="Write a reply..."></textarea>
+
+    <div class="message-actions">
+        <button onclick="sendThreadReply()">Send Reply</button>
+    </div>
+
+    <p id="threadReplyStatus" class="subtle"></p>
+</div>
     </div>
 </section>
 
