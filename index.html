@@ -17,6 +17,9 @@
     <div id="navLinks">
         <span id="navQuiz">Benchmark</span>
         <span id="navLeaderboard">Leaderboard</span>
+        <span id="navAuth">Sign In</span>
+        <span id="profileNavButton" class="hidden" >Profile</span>
+        <span id="signOutNavButton" class="hidden" >Sign Out</span>
     </div>
 
 </div>
@@ -85,7 +88,17 @@ Please do not access outside resources when taking this test. Completion should 
     Future versions will include percentile rankings, profiles, and peer comparison.
 </p>
 
+<p id="scoreSaveMessage" class="future-note"></p>
+
 <button id="restartButton">Restart</button>
+
+<div id="resultAuthPrompt" class="result-auth-prompt hidden">
+    <h3>Save your score</h3>
+    <p>Create a Nexus account to save your result, build your profile, and appear on the leaderboard.</p>
+    <button onclick="switchScreen(activeScreen, screens.auth)">Create Account</button>
+    <button class="secondary-button" onclick="switchScreen(activeScreen, screens.auth)">Sign In</button>
+</div>
+
     </div>
 </div>
 
@@ -120,6 +133,77 @@ Please do not access outside resources when taking this test. Completion should 
     </div>
 
 </div>
+
+<section id="authScreen" class="screen hidden">
+    <div class="card auth-card">
+        <h1>Create your Nexus account</h1>
+        <p class="subtle">
+            Save your score, build your profile, and compare with other students.
+        </p>
+
+        <input id="authEmail" type="email" placeholder="Email">
+        <input id="authPassword" type="password" placeholder="Password">
+
+        <button onclick="signUp()">Create account</button>
+        <button onclick="signIn()" class="secondary-button">Sign in instead</button>
+
+        <p id="authMessage"></p>
+    </div>
+</section>
+
+<section id="profileScreen" class="screen hidden">
+    <div class="card profile-card">
+        <div class="profile-header">
+            <div>
+                <h1>Your Profile</h1>
+                <p class="subtle">Build your Nexus identity for saved scores, leaderboards, and discovery.</p>
+            </div>
+        </div>
+
+        <div class="profile-grid">
+            <div class="form-group">
+                <label>Username</label>
+                <input id="profileUsername" placeholder="superadmin">
+            </div>
+
+            <div class="form-group">
+                <label>Display Name</label>
+                <input id="profileDisplayName" placeholder="SuperAdmin">
+            </div>
+
+            <div class="form-group">
+                <label>School</label>
+                <input id="profileSchool" placeholder="University of Michigan">
+            </div>
+
+            <div class="form-group">
+                <label>Major</label>
+                <input id="profileMajor" placeholder="Computer Science">
+            </div>
+
+            <div class="form-group full-width">
+                <label>Interests</label>
+                <input id="profileInterests" placeholder="AI, web development, systems, startups">
+            </div>
+
+            <div class="form-group full-width">
+                <label>Bio</label>
+                <textarea id="profileBio" placeholder="Tell other students what you are working on."></textarea>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <button onclick="saveProfile()">Save Profile</button>
+            <p id="profileMessage"></p>
+        </div>
+        
+        <div class="profile-scores">
+            <h2>Previous Scores</h2>
+            <div id="previousScoresList"></div>
+        </div>
+
+    </div>
+</section>
 
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
