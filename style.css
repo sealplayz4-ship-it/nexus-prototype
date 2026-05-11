@@ -382,6 +382,27 @@ html, body {
     border-color: #6ea8ff;
 }
 
+.auth-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.auth-actions button {
+    margin-top: 16px;
+}
+
+@media (max-width: 600px) {
+    .auth-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .auth-actions button {
+        width: 100%;
+    }
+}
+
 .secondary-button {
     background: transparent;
     color: white;
