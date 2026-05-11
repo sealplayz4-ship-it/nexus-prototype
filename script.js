@@ -480,6 +480,11 @@ let previousSection = "ar";
 let supabaseUrl = "https://qhihhbdhlpowflzfdoqo.supabase.co";
 let supabaseKey = "sb_publishable_dlNHRTBRY2F3WvMiLc9iug_iokeJBLR";
 
+let currentPublicProfileId = null;
+let currentThreadUserId = null;
+
+const inboxButton = document.getElementById("inboxNavButton");
+
 const supabaseClient = supabase.createClient(
     supabaseUrl,
     supabaseKey);
@@ -781,10 +786,12 @@ async function updateNavbar() {
         signInButton.classList.add("hidden");
         profileButton.classList.remove("hidden");
         signOutButton.classList.remove("hidden");
+        inboxButton.classList.remove("hidden");
     } else {
         signInButton.classList.remove("hidden");
         profileButton.classList.add("hidden");
         signOutButton.classList.add("hidden");
+        inboxButton.classList.add("hidden");
     }
 }
 
@@ -993,6 +1000,373 @@ async function loadPreviousScores() {
     });
 }
 
+async function openPublicProfile(userId) {
+    const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+    if (error) {
+        console.error("Public profile load failed:", error);
+        return;
+    }
+
+    currentPublicProfileId = userId;
+    document.getElementById("publicMessageText").value = "";
+    document.getElementById("publicMessageStatus").textContent = "";
+
+    document.getElementById("publicDisplayName").textContent =
+        data.display_name || data.username || "Unnamed User";
+
+    document.getElementById("publicUsername").textContent =
+        data.username ? `@${data.username}` : "";
+
+    document.getElementById("publicSchool").textContent =
+        data.school || "Not listed";
+
+    document.getElementById("publicMajor").textContent =
+        data.major || "Not listed";
+
+    document.getElementById("publicInterests").textContent =
+        data.interests || "Not listed";
+
+    document.getElementById("publicBio").textContent =
+        data.bio || "No bio yet.";
+
+    switchScreen(activeScreen, screens.publicProfile);
+}
+
+async function loadLeaderboard() {
+    const leaderboardList = document.getElementById("leaderboardList");
+
+    leaderboardList.innerHTML = "<p class='subtle'>Loading leaderboard...</p>";
+
+    const { data, error } = await supabaseClient
+        .from("scores")
+  .select(`
+        *,
+        profiles (
+            username,
+            display_name,
+            school,
+            major
+        )
+    `)
+        .order("total_score", { ascending: false })
+        .limit(100);
+
+    if (error) {
+        console.error("Leaderboard load failed:", error);
+        leaderboardList.innerHTML = "<p class='subtle'>Could not load leaderboard.</p>";
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        leaderboardList.innerHTML = "<p class='subtle'>No saved scores yet.</p>";
+        return;
+    }
+
+    leaderboardList.innerHTML = "";
+
+data.forEach((scoreRow, index) => {
+    const profile = scoreRow.profiles;
+
+    const name =
+        profile?.display_name ||
+        profile?.username ||
+        "Anonymous User";
+
+    const entry = document.createElement("div");
+    entry.classList.add("leaderboard-entry");
+
+    entry.addEventListener("click", () => {
+        openPublicProfile(scoreRow.user_id);
+    });
+
+    entry.innerHTML = `
+        <div class="leaderboard-rank">#${index + 1}</div>
+
+        <div class="leaderboard-main">
+            <h3>${name} — ${scoreRow.total_score}/28</h3>
+            <p class="subtle">
+                ${profile?.school || "Unknown school"} · ${profile?.major || "Unknown major"}
+            </p>
+            <p class="subtle">
+                Analytical: ${scoreRow.analytical_reasoning}/7 ·
+                DSA: ${scoreRow.data_structures_algorithms}/7 ·
+                Systems: ${scoreRow.systems}/7 ·
+                Code: ${scoreRow.code_comprehension}/7
+            </p>
+        </div>
+    `;
+
+    leaderboardList.appendChild(entry);
+});
+}
+
+async function sendMessageToPublicProfile() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const status = document.getElementById("publicMessageStatus");
+    const content = document.getElementById("publicMessageText").value.trim();
+
+    if (!user) {
+        status.textContent = "Sign in to send messages.";
+        return;
+    }
+
+    if (!currentPublicProfileId) {
+        status.textContent = "No user selected.";
+        return;
+    }
+
+    if (!content) {
+        status.textContent = "Message cannot be empty.";
+        return;
+    }
+
+    if (user.id === currentPublicProfileId) {
+        status.textContent = "You cannot message yourself.";
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from("messages")
+        .insert({
+            sender_id: user.id,
+            receiver_id: currentPublicProfileId,
+            content
+        });
+
+    if (error) {
+        console.error("Message send failed:", error);
+        status.textContent = error.message;
+        return;
+    }
+
+    document.getElementById("publicMessageText").value = "";
+    status.textContent = "Message sent.";
+}
+
+async function loadInbox() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const inboxList = document.getElementById("inboxList");
+
+    if (!user) {
+        inboxList.innerHTML = "<p class='subtle'>Sign in to view your inbox.</p>";
+        return;
+    }
+
+    inboxList.innerHTML = "<p class='subtle'>Loading conversations...</p>";
+
+    const { data, error } = await supabaseClient
+        .from("messages")
+        .select(`
+            *,
+            sender:profiles!messages_sender_id_fkey (
+                username,
+                display_name
+            ),
+            receiver:profiles!messages_receiver_id_fkey (
+                username,
+                display_name
+            )
+        `)
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Inbox load failed:", error);
+        inboxList.innerHTML = "<p class='subtle'>Could not load inbox.</p>";
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        inboxList.innerHTML = "<p class='subtle'>No conversations yet.</p>";
+        return;
+    }
+
+    const conversations = new Map();
+
+    data.forEach(message => {
+        const otherUserId =
+            message.sender_id === user.id
+                ? message.receiver_id
+                : message.sender_id;
+
+        if (!conversations.has(otherUserId)) {
+            const otherProfile =
+                message.sender_id === user.id
+                    ? message.receiver
+                    : message.sender;
+
+            conversations.set(otherUserId, {
+                otherUserId,
+                otherProfile,
+                latestMessage: message
+            });
+        }
+    });
+
+    inboxList.innerHTML = "";
+
+    conversations.forEach(convo => {
+        const name =
+            convo.otherProfile?.display_name ||
+            convo.otherProfile?.username ||
+            "Unknown User";
+
+        const entry = document.createElement("div");
+        entry.classList.add("message-entry");
+        entry.classList.add("clickable-entry");
+
+        entry.innerHTML = `
+            <div class="message-header">
+                <strong>${name}</strong>
+                <span class="score-date">${new Date(convo.latestMessage.created_at).toLocaleDateString()}</span>
+            </div>
+            <p class="subtle">${convo.latestMessage.content}</p>
+        `;
+
+        entry.addEventListener("click", () => {
+            openThread(convo.otherUserId, name);
+        });
+
+        inboxList.appendChild(entry);
+    });
+}
+
+async function openThread(otherUserId, name) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) return;
+
+    currentThreadUserId = otherUserId;
+
+    document.getElementById("threadTitle").textContent = `Conversation with ${name}`;
+    document.getElementById("threadReplyText").value = "";
+    document.getElementById("threadReplyStatus").textContent = "";
+
+    const threadMessages = document.getElementById("threadMessages");
+    threadMessages.innerHTML = "<p class='subtle'>Loading conversation...</p>";
+
+    const { data, error } = await supabaseClient
+        .from("messages")
+        .select("*")
+        .or(
+            `and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`
+        )
+        .order("created_at", { ascending: true });
+
+    if (error) {
+        console.error("Thread load failed:", error);
+        threadMessages.innerHTML = "<p class='subtle'>Could not load conversation.</p>";
+        return;
+    }
+
+    threadMessages.innerHTML = "";
+
+    data.forEach(message => {
+        const bubble = document.createElement("div");
+
+        const isMine = message.sender_id === user.id;
+
+        bubble.classList.add("thread-message");
+        bubble.classList.add(isMine ? "my-message" : "their-message");
+
+        bubble.innerHTML = `
+            <p>${message.content}</p>
+            <span>${new Date(message.created_at).toLocaleString()}</span>
+        `;
+
+        threadMessages.appendChild(bubble);
+    });
+
+    switchScreen(activeScreen, screens.thread);
+}
+
+async function sendReply(receiverId, replyBox, replyStatus) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+        replyStatus.textContent = "You must be signed in to reply.";
+        return;
+    }
+
+    const content = replyBox.value.trim();
+
+    if (!content) {
+        replyStatus.textContent = "Reply cannot be empty.";
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from("messages")
+        .insert({
+            sender_id: user.id,
+            receiver_id: receiverId,
+            content
+        });
+
+    if (error) {
+        console.error("Reply failed:", error);
+        replyStatus.textContent = error.message;
+        return;
+    }
+
+    replyBox.value = "";
+    replyStatus.textContent = "Reply sent.";
+}
+
+async function openInbox() {
+    await loadInbox();
+    switchScreen(activeScreen, screens.inbox);
+}
+
+async function sendThreadReply() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const replyText = document.getElementById("threadReplyText");
+    const status = document.getElementById("threadReplyStatus");
+
+    if (!user) {
+        status.textContent = "You must be signed in.";
+        return;
+    }
+
+    const content = replyText.value.trim();
+
+    if (!currentThreadUserId) {
+        status.textContent = "No conversation selected.";
+        return;
+    }
+
+    if (!content) {
+        status.textContent = "Reply cannot be empty.";
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from("messages")
+        .insert({
+            sender_id: user.id,
+            receiver_id: currentThreadUserId,
+            content
+        });
+
+    if (error) {
+        console.error("Reply failed:", error);
+        status.textContent = error.message;
+        return;
+    }
+
+    replyText.value = "";
+    status.textContent = "Reply sent.";
+
+    await openThread(currentThreadUserId, document.getElementById("threadTitle").textContent.replace("Conversation with ", ""));
+}
+
 const screens = {
     home: document.getElementById("homeScreen"),
     test: document.getElementById("testScreen"),
@@ -1000,7 +1374,10 @@ const screens = {
     result: document.getElementById("resultScreen"),
     leaderboard: document.getElementById("leaderboardScreen"),
     auth: document.getElementById("authScreen"),
-    profile: document.getElementById("profileScreen")
+    profile: document.getElementById("profileScreen"),
+    publicProfile: document.getElementById("publicProfileScreen"),
+    inbox: document.getElementById("inboxScreen"),
+    thread: document.getElementById("threadScreen")
 };
 
 let activeScreen = screens.home;
@@ -1078,6 +1455,7 @@ document.getElementById("navQuiz")
 
 document.getElementById("navLeaderboard")
 .addEventListener("click", () => {
+    loadLeaderboard();
     switchScreen(activeScreen, screens.leaderboard);
 });
 
@@ -1095,3 +1473,12 @@ document.getElementById("signOutNavButton")
 .addEventListener("click", () => {
     signOut();
 });
+
+document.getElementById("inboxNavButton")
+.addEventListener("click", async () => {
+    await loadInbox();
+    switchScreen(activeScreen, screens.inbox);
+});
+
+document.getElementById("inboxNavButton")
+.addEventListener("click", openInbox);
