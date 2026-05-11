@@ -8,6 +8,13 @@ const startButton = document.getElementById("startButton");
     document.getElementById("testScreen").classList.add("hidden");
     document.getElementById("sectionScreen").classList.add("hidden");
     document.getElementById("resultScreen").classList.add("hidden");
+    document.getElementById("authScreen").classList.add("hidden");
+
+    updateNavbar();
+
+    supabaseClient.auth.onAuthStateChange((_event, _session) => {
+        updateNavbar();
+    });
 });
 
 const questions = [
@@ -482,6 +489,8 @@ console.log("Supabase client created");
 const questionEl = document.getElementById("questionText");
 const answerButtons = document.getElementById("answerButtons");
 
+let scoreSavedThisSession = false;
+
 function switchScreen(fromScreen, toScreen, callback) {
 
     fromScreen.classList.add("fade-out");
@@ -685,6 +694,303 @@ function showResults() {
 
     recommendationText.textContent =
         `Recommended focus: ${categoryNames[weakestCategory]}.`;
+
+    handleResultAuthState();
+}
+
+async function testInsert() {
+
+    const { data, error } = await supabaseClient
+        .from("test_table")
+        .insert([
+            { message: "Hello from Nexus" }
+        ]);
+
+    if (error) {
+        console.error(error);
+    } else {
+        console.log("Insert successful");
+    }
+}
+
+testInsert();
+
+async function signUp() {
+    const email = document.getElementById("authEmail").value;
+    const password = document.getElementById("authPassword").value;
+    const message = document.getElementById("authMessage");
+
+    const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password
+    });
+
+    if (error) {
+        message.textContent = error.message;
+        return;
+    }
+
+    message.textContent = "Account created. Check your email if confirmation is enabled.";
+
+        console.log("Signup data:", data);
+    console.log("Signup error:", error);
+
+    if (error) {
+        message.textContent = error.message;
+        return;
+    }
+
+    message.textContent = "Account created.";
+    await updateNavbar();
+    await trySavePendingScore();
+}
+
+async function signIn() {
+    const email = document.getElementById("authEmail").value;
+    const password = document.getElementById("authPassword").value;
+    const message = document.getElementById("authMessage");
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+    });
+
+    if (error) {
+        message.textContent = error.message;
+        return;
+    }
+
+    message.textContent = "Signed in successfully.";
+    await updateNavbar();
+    await trySavePendingScore();
+if (currentQuestion >= questions.length) {
+    switchScreen(activeScreen, screens.result);
+} else {
+    switchScreen(activeScreen, screens.home);
+}
+}
+
+async function updateNavbar() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    const signInButton = document.getElementById("navAuth");
+    const profileButton = document.getElementById("profileNavButton");
+    const signOutButton = document.getElementById("signOutNavButton");
+
+    if (session && session.user) {
+        signInButton.classList.add("hidden");
+        profileButton.classList.remove("hidden");
+        signOutButton.classList.remove("hidden");
+    } else {
+        signInButton.classList.remove("hidden");
+        profileButton.classList.add("hidden");
+        signOutButton.classList.add("hidden");
+    }
+}
+
+async function signOut() {
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) {
+        console.error("Sign out failed:", error);
+        return;
+    }
+
+    await updateNavbar();
+    switchScreen(activeScreen, screens.home);
+}
+
+async function openProfile() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+        switchScreen(activeScreen,screens.auth)
+        return;
+    }
+
+    await loadProfile();
+    await loadPreviousScores();
+    switchScreen(activeScreen,screens.profile)
+}
+
+async function loadProfile() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) return;
+
+    const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Profile load failed:", error);
+        return;
+    }
+
+    if (!data) return;
+
+    document.getElementById("profileUsername").value = data.username || "";
+    document.getElementById("profileDisplayName").value = data.display_name || "";
+    document.getElementById("profileSchool").value = data.school || "";
+    document.getElementById("profileMajor").value = data.major || "";
+    document.getElementById("profileInterests").value = data.interests || "";
+    document.getElementById("profileBio").value = data.bio || "";
+}
+
+async function saveProfile() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const message = document.getElementById("profileMessage");
+
+    if (!user) {
+        message.textContent = "You must be signed in to save a profile.";
+        return;
+    }
+
+    const profile = {
+        id: user.id,
+        username: document.getElementById("profileUsername").value.trim(),
+        display_name: document.getElementById("profileDisplayName").value.trim(),
+        school: document.getElementById("profileSchool").value.trim(),
+        major: document.getElementById("profileMajor").value.trim(),
+        interests: document.getElementById("profileInterests").value.trim(),
+        bio: document.getElementById("profileBio").value.trim(),
+        updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabaseClient
+        .from("profiles")
+        .upsert(profile);
+
+    if (error) {
+        console.error("Profile save failed:", error);
+        message.textContent = error.message;
+        return;
+    }
+
+    message.textContent = "Profile saved.";
+}
+
+async function saveScoreToSupabase() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const message = document.getElementById("scoreSaveMessage");
+
+    if (!user) {
+        message.textContent = "Create an account to save your score.";
+        return;
+    }
+
+    const scoreData = {
+        user_id: user.id,
+        total_score: score,
+        analytical_reasoning: sectionScores["ar"],
+        data_structures_algorithms: sectionScores["ds"],
+        systems: sectionScores["s"],
+        code_comprehension: sectionScores["cc"]
+    };
+
+    const { error } = await supabaseClient
+        .from("scores")
+        .insert(scoreData);
+
+    if (error) {
+        console.error("Score save failed:", error);
+        message.textContent = "Could not save score.";
+        return;
+    }
+
+    const authPrompt = document.getElementById("resultAuthPrompt");
+
+    if (authPrompt) {
+        authPrompt.classList.add("hidden");
+    }
+
+    message.textContent = "Score saved to your profile.";
+
+    await loadPreviousScores();
+}
+
+async function handleResultAuthState() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const authPrompt = document.getElementById("resultAuthPrompt");
+    const saveMessage = document.getElementById("scoreSaveMessage");
+
+    if (!user) {
+        authPrompt.classList.remove("hidden");
+        saveMessage.textContent = "";
+        return;
+    }
+
+    authPrompt.classList.add("hidden");
+    await saveScoreToSupabase();
+}
+
+async function trySavePendingScore() {
+
+    if (scoreSavedThisSession) return;
+
+    if (score <= 0 || currentQuestion < questions.length) {
+        return;
+    }
+
+    await saveScoreToSupabase();
+
+    scoreSavedThisSession = true;
+}
+
+async function loadPreviousScores() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const scoresList = document.getElementById("previousScoresList");
+
+    if (!user) {
+        scoresList.innerHTML = "<p class='subtle'>Sign in to view previous scores.</p>";
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from("scores")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Could not load previous scores:", error);
+        scoresList.innerHTML = "<p class='subtle'>Could not load previous scores.</p>";
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        scoresList.innerHTML = "<p class='subtle'>No saved scores yet.</p>";
+        return;
+    }
+
+    scoresList.innerHTML = "";
+
+    data.forEach(scoreRow => {
+        const date = new Date(scoreRow.created_at).toLocaleDateString();
+
+        const scoreEntry = document.createElement("div");
+        scoreEntry.classList.add("score-entry");
+
+        scoreEntry.innerHTML = `
+            <div class="score-entry-top">
+                <strong>${scoreRow.total_score}/28</strong>
+                <span class="score-date">${date}</span>
+            </div>
+            <p class="subtle">
+                Analytical: ${scoreRow.analytical_reasoning}/7 ·
+                DSA: ${scoreRow.data_structures_algorithms}/7 ·
+                Systems: ${scoreRow.systems}/7 ·
+                Code: ${scoreRow.code_comprehension}/7
+            </p>
+        `;
+
+        scoresList.appendChild(scoreEntry);
+    });
 }
 
 const screens = {
@@ -692,7 +998,9 @@ const screens = {
     test: document.getElementById("testScreen"),
     section: document.getElementById("sectionScreen"),
     result: document.getElementById("resultScreen"),
-    leaderboard: document.getElementById("leaderboardScreen")
+    leaderboard: document.getElementById("leaderboardScreen"),
+    auth: document.getElementById("authScreen"),
+    profile: document.getElementById("profileScreen")
 };
 
 let activeScreen = screens.home;
@@ -760,6 +1068,7 @@ document.getElementById("restartButton")
     sectionScores.cc = 0;
 
     switchScreen(screens.result, screens.home);
+    scoreSavedThisSession = false;
 });
 
 document.getElementById("navQuiz")
@@ -772,3 +1081,17 @@ document.getElementById("navLeaderboard")
     switchScreen(activeScreen, screens.leaderboard);
 });
 
+document.getElementById("navAuth")
+.addEventListener("click", () => {
+    switchScreen(activeScreen, screens.auth);
+});
+
+document.getElementById("profileNavButton")
+.addEventListener("click", () => {
+    openProfile();
+});
+
+document.getElementById("signOutNavButton")
+.addEventListener("click", () => {
+    signOut();
+});
