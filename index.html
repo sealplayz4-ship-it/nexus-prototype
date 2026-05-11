@@ -134,22 +134,22 @@ Please do not access outside resources when taking this test. Completion should 
 
 </div>
 
-<section id="authScreen" class="screen hidden">
+<div id="authScreen" class="screen hidden">
     <div class="card auth-card">
         <h1>Create your Nexus account</h1>
-        <p class="subtle">
-            Save your score, build your profile, and compare with other students.
-        </p>
+        <p class="subtle">Save your score, build your profile, and compare with other students.</p>
 
         <input id="authEmail" type="email" placeholder="Email">
         <input id="authPassword" type="password" placeholder="Password">
 
-        <button onclick="signUp()">Create account</button>
-        <button onclick="signIn()" class="secondary-button">Sign in instead</button>
+        <div class="auth-actions">
+            <button onclick="signUp()">Create account</button>
+            <button onclick="signIn()" class="secondary-button">Sign in instead</button>
+        </div>
 
         <p id="authMessage"></p>
     </div>
-</section>
+</div>
 
 <section id="profileScreen" class="screen hidden">
     <div class="card profile-card">
