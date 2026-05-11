@@ -3,9 +3,8 @@ body {
     margin: 0;
     color: white;
     line-height: 2;
-    padding-top: 90px;
-    min-height: 100vh;
-
+    min-height: 100%;
+    overflow-x: hidden;
     background-color: rgb(19, 19, 19);
     background-image:
         radial-gradient(circle at top left, rgba(79,140,255,0.16), transparent 35%),
@@ -140,7 +139,7 @@ button:active {
 
 .results-card {
     width: 100%;
-    max-width: 900px;
+    max-width: 760px;
     margin: 0 auto;
 
     padding: 40px;
@@ -151,20 +150,27 @@ button:active {
 }
 
 .screen {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
     opacity: 1;
     transform: translateY(0);
     transition:
         opacity 250ms ease,
         transform 250ms ease;
-    position: fixed;
-    inset: 0;
+
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 
-    padding: 5vh 0;
+    padding: 40px 20px;
     box-sizing: border-box;
+
+    overflow-y: auto;
 }
 
 .screen.fade-out {
@@ -348,4 +354,208 @@ html, body {
 .future-note {
     color: #aaa;
     margin-top: 25px;
+}
+
+.auth-card {
+    max-width: 480px;
+    width: 100%;
+
+    background-color: #161616;
+    box-shadow: 0 0 30px rgba(0,0,0,0.35);
+    border-radius: 16px;
+}
+
+.auth-card input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #0f0f0f;
+    color: white;
+    font-size: 15px;
+}
+
+.auth-card input:focus {
+    outline: none;
+    border-color: #6ea8ff;
+}
+
+.secondary-button {
+    background: transparent;
+    color: white;
+    border: 1px solid #333;
+    margin-left: 8px;
+}
+
+.secondary-button:hover {
+    background: #1f1f1f;
+    color: white;
+    border-color: #555;
+}
+
+button.secondary-button:hover {
+    background: #1f1f1f;
+    color: white;
+}
+
+.subtle {
+    color: #b8b8b8;
+}
+
+#authMessage {
+    margin-top: 12px;
+    color: #b8b8b8;
+}
+
+.profile-card {
+    max-width: 720px;
+    width: 100%;
+    padding: 42px;
+
+    background-color: #161616;
+    box-shadow: 0 0 30px rgba(0,0,0,0.35);
+    border-radius: 16px;
+}
+
+.profile-header {
+    margin-bottom: 28px;
+}
+
+.profile-header h1 {
+    margin-bottom: 8px;
+}
+
+.subtle {
+    color: #b8b8b8;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    color: #d8d8d8;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid #2f2f2f;
+    background: #101010;
+    color: white;
+    font-size: 15px;
+    font-family: inherit;
+}
+
+.form-group textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #6ea8ff;
+    box-shadow: 0 0 0 3px rgba(110, 168, 255, 0.12);
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.profile-actions {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+#profileMessage {
+    color: #b8b8b8;
+    margin: 0;
+}
+
+@media (max-width: 700px) {
+    .profile-card {
+        padding: 28px;
+    }
+
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+.result-auth-prompt {
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px solid #2f2f2f;
+    border-radius: 14px;
+    background: #101010;
+}
+
+.result-auth-prompt h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+}
+
+.result-auth-prompt p {
+    color: #b8b8b8;
+    margin-bottom: 14px;
+}
+
+.profile-scores {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #2a2a2a;
+}
+
+.score-entry {
+    padding: 16px;
+    border: 1px solid #2f2f2f;
+    border-radius: 12px;
+    background: #101010;
+    margin-top: 12px;
+}
+
+.score-entry-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.score-entry strong {
+    font-size: 18px;
+}
+
+.score-date {
+    color: #aaa;
+    font-size: 14px;
+}
+
+#profileScreen {
+    justify-content: flex-start;
+}
+
+#leaderboardScreen {
+    justify-content: flex-start;
 }
