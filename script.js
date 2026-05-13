@@ -17,6 +17,8 @@ const startButton = document.getElementById("startButton");
     });
 });
 
+// Global Variables
+
 let questions = []
 let questionBank = [];
 
@@ -71,6 +73,9 @@ let currentThreadUserId = null;
 let currentForumPostId = null;
 
 let userAnswers = [];
+
+const DEFAULT_FORUM_NAV_TEXT = "Forum";
+const DEFAULT_INBOX_NAV_TEXT = "Inbox";
 
 const inboxButton = document.getElementById("inboxNavButton");
 
@@ -406,12 +411,24 @@ async function signUp() {
     await updateNavbar();
     await trySavePendingScore();
 
-    if (currentQuestion >= questions.length) {
-        switchScreen(activeScreen, screens.result);
-        await handleResultAuthState();
-    } else {
-        switchScreen(activeScreen, screens.home);
-    }
+const hasCompletedTest =
+    questions.length > 0 &&
+    userAnswers.length === questions.length &&
+    currentQuestion >= questions.length;
+
+if (hasCompletedTest) {
+    await trySavePendingScore();
+showNextStep({
+    title: "Your score has been saved.",
+    text: "Complete your profile so other students can find you on the leaderboard, forum, and messaging system.",
+    primaryText: "Complete Profile",
+    primaryAction: openProfile,
+    secondaryText: "View Results",
+    secondaryAction: () => switchScreen(activeScreen, screens.result)
+});    await handleResultAuthState();
+} else {
+    switchScreen(activeScreen, screens.home);
+}
 }
 
 async function ensureProfileExists() {
@@ -452,11 +469,52 @@ async function signIn() {
     message.textContent = "Signed in successfully.";
     await updateNavbar();
     await trySavePendingScore();
-if (currentQuestion >= questions.length) {
+const hasCompletedTest =
+    questions.length > 0 &&
+    userAnswers.length === questions.length &&
+    currentQuestion >= questions.length;
+
+if (hasCompletedTest) {
+    await trySavePendingScore();
     switchScreen(activeScreen, screens.result);
+    await handleResultAuthState();
 } else {
     switchScreen(activeScreen, screens.home);
 }
+}
+
+async function loadNotificationCounts() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const forumNav = document.getElementById("navForum");
+    const inboxNav = document.getElementById("inboxNavButton");
+
+    forumNav.textContent = DEFAULT_FORUM_NAV_TEXT;
+    inboxNav.textContent = DEFAULT_INBOX_NAV_TEXT;
+
+    if (!user) return;
+
+    const { data, error } = await supabaseClient
+        .from("notifications")
+        .select("type")
+        .eq("user_id", user.id)
+        .eq("is_read", false);
+
+    if (error) {
+        console.error("Notification count load failed:", error);
+        return;
+    }
+
+    const forumCount = data.filter(n => n.type === "forum_reply").length;
+    const inboxCount = data.filter(n => n.type === "direct_message").length;
+
+    if (forumCount > 0) {
+        forumNav.textContent = `${DEFAULT_FORUM_NAV_TEXT} (${forumCount})`;
+    }
+
+    if (inboxCount > 0) {
+        inboxNav.textContent = `${DEFAULT_INBOX_NAV_TEXT} (${inboxCount})`;
+    }
 }
 
 async function updateNavbar() {
@@ -477,6 +535,8 @@ async function updateNavbar() {
         signOutButton.classList.add("hidden");
         inboxButton.classList.add("hidden");
     }
+
+    await loadNotificationCounts()
 }
 
 async function signOut() {
@@ -563,6 +623,28 @@ async function saveProfile() {
     }
 
     message.textContent = "Profile saved.";
+
+    const { data: existingProfile } = await supabaseClient
+    .from("profiles")
+    .select("username, display_name, bio, school, major, interests")
+    .eq("id", user.id)
+    .maybeSingle();
+
+const wasIncomplete =
+    !existingProfile ||
+    !existingProfile.username ||
+    !existingProfile.display_name;
+
+    if (wasIncomplete) {
+    showNextStep({
+        title: "Your profile is ready.",
+        text: "Introduce yourself in the forum so other students know what you are working on.",
+        primaryText: "Go to Forum",
+        primaryAction: openForum,
+        secondaryText: "Stay on Profile",
+        secondaryAction: () => switchScreen(activeScreen, screens.profile)
+    });
+}
 }
 
 async function saveScoreToSupabase() {
@@ -849,6 +931,15 @@ async function sendMessageToPublicProfile() {
 
     document.getElementById("publicMessageText").value = "";
     status.textContent = "Message sent.";
+
+    await supabaseClient
+    .from("notifications")
+    .insert({
+        user_id: currentPublicProfileId,
+        actor_user_id: user.id,
+        type: "direct_message",
+        content: "You received a new message."
+    });
 }
 
 async function loadInbox() {
@@ -1022,6 +1113,7 @@ async function sendReply(receiverId, replyBox, replyStatus) {
 }
 
 async function openInbox() {
+    await markNotificationsRead("direct_message");
     await loadInbox();
     switchScreen(activeScreen, screens.inbox);
 }
@@ -1067,6 +1159,15 @@ async function sendThreadReply() {
     status.textContent = "Reply sent.";
 
     await openThread(currentThreadUserId, document.getElementById("threadTitle").textContent.replace("Conversation with ", ""));
+
+    await supabaseClient
+    .from("notifications")
+    .insert({
+        user_id: currentPublicProfileId,
+        actor_user_id: user.id,
+        type: "direct_message",
+        content: "You received a new message."
+    });
 }
 
 async function loadForumPosts() {
@@ -1217,6 +1318,7 @@ async function createForumPost() {
 }
 
 async function openForum() {
+    await markNotificationsRead("forum_reply");
     await loadForumPosts();
     switchScreen(activeScreen, screens.forum);
 }
@@ -1407,6 +1509,24 @@ async function createForumComment() {
     document.getElementById("commentContent").value = "";
     message.textContent = "Comment posted.";
 
+    const { data: postData } = await supabaseClient
+    .from("forum_posts")
+    .select("user_id")
+    .eq("id", currentForumPostId)
+    .single();
+
+    if (postData.user_id !== user.id) {
+    await supabaseClient
+        .from("notifications")
+        .insert({
+            user_id: postData.user_id,
+            actor_user_id: user.id,
+            type: "forum_reply",
+            related_post_id: currentForumPostId,
+            content: "Someone replied to your forum thread."
+        });
+}
+
     await loadForumComments(currentForumPostId);
 }
 
@@ -1505,6 +1625,58 @@ async function loadPrivateCompositeScore() {
     renderCompositeScore(container, data, true);
 }
 
+async function markNotificationsRead(type) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) return;
+
+    const { error } = await supabaseClient
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", user.id)
+        .eq("type", type)
+        .eq("is_read", false);
+
+    if (error) {
+        console.error("Mark notifications read failed:", error);
+        return;
+    }
+
+    await updateNavbar();
+}
+
+async function trackEvent(eventType, metadata = {}) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const { error } = await supabaseClient
+        .from("analytics_events")
+        .insert({
+            user_id: user ? user.id : null,
+            event_type: eventType,
+            metadata
+        });
+
+    if (error) {
+        console.error("Analytics event failed:", error);
+    }
+}
+
+function showNextStep({ title, text, primaryText, primaryAction, secondaryText, secondaryAction }) {
+    document.getElementById("nextStepTitle").textContent = title;
+    document.getElementById("nextStepText").textContent = text;
+
+    const primaryButton = document.getElementById("nextStepPrimaryButton");
+    const secondaryButton = document.getElementById("nextStepSecondaryButton");
+
+    primaryButton.textContent = primaryText;
+    secondaryButton.textContent = secondaryText;
+
+    primaryButton.onclick = primaryAction;
+    secondaryButton.onclick = secondaryAction;
+
+    switchScreen(activeScreen, screens.nextStep);
+}
+
 const screens = {
     home: document.getElementById("homeScreen"),
     test: document.getElementById("testScreen"),
@@ -1517,7 +1689,8 @@ const screens = {
     inbox: document.getElementById("inboxScreen"),
     thread: document.getElementById("threadScreen"),
     forum: document.getElementById("forumScreen"),
-    forumThread: document.getElementById("forumThreadScreen")
+    forumThread: document.getElementById("forumThreadScreen"),
+    nextStep: document.getElementById("nextStepScreen")
 };
 
 let activeScreen = screens.home;
@@ -1612,14 +1785,8 @@ document.getElementById("signOutNavButton")
     signOut();
 });
 
-document.getElementById("inboxNavButton")
-.addEventListener("click", async () => {
-    await loadInbox();
-    switchScreen(activeScreen, screens.inbox);
-});
-
 document.getElementById("navForum")
-.addEventListener("click", async () => {
-    await loadForumPosts();
-    switchScreen(activeScreen, screens.forum);
-});
+.addEventListener("click", openForum);
+
+document.getElementById("inboxNavButton")
+.addEventListener("click", openInbox);
