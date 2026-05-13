@@ -3,7 +3,7 @@
 
 <head>
     <title> Nexus - CS Benchmark</title>
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
@@ -17,6 +17,7 @@
     <div id="navLinks">
         <span id="navQuiz">Benchmark</span>
         <span id="navLeaderboard">Leaderboard</span>
+        <span id="navForum">Forum</span>
         <span id="navAuth">Sign In</span>
         <span id="profileNavButton" class="hidden" >Profile</span>
         <span id="inboxNavButton" class="hidden">Inbox</span>
@@ -184,6 +185,8 @@ Please do not access outside resources when taking this test. Completion should 
         </div>
         
         <div class="profile-scores">
+            <h2>Composite Score</h2>
+            <div id="privateCompositeScore"></div>
             <h2>Previous Scores</h2>
             <div id="previousScoresList"></div>
         </div>
@@ -200,10 +203,13 @@ Please do not access outside resources when taking this test. Completion should 
         <p><strong>Major:</strong> <span id="publicMajor"></span></p>
         <p><strong>Interests:</strong> <span id="publicInterests"></span></p>
 
+        <div class="profile-scores">
+    <h2>Composite Score</h2>
+    <div id="publicCompositeScore"></div>
+    </div>
+
         <h2>Bio</h2>
         <p id="publicBio" class="subtle"></p>
-
-        <button onclick="switchScreen(activeScreen, screens.leaderboard)">Back to Leaderboard</button>
 
         <div class="message-box">
         <h2>Send Message</h2>
@@ -211,6 +217,7 @@ Please do not access outside resources when taking this test. Completion should 
         <button onclick="sendMessageToPublicProfile()">Send Message</button>
         <p id="publicMessageStatus" class="subtle"></p>
 </div>
+        <button onclick="switchScreen(activeScreen, screens.leaderboard); loadLeaderboard()">Back to Leaderboard</button>
     </div>
 </section>
 
@@ -242,8 +249,72 @@ Please do not access outside resources when taking this test. Completion should 
     </div>
 </section>
 
+<section id="forumScreen" class="screen hidden">
+    <div class="card forum-card">
+        <h1>Forum</h1>
+        <p class="subtle">Discuss projects, scores, recruiting, and CS learning.</p>
+
+<div class="forum-controls">
+    <div class="forum-control-group">
+        <label>View category</label>
+        <select id="forumCategoryFilter" onchange="loadForumPosts()">
+            <option value="All">All Categories</option>
+            <option value="General">General</option>
+            <option value="Projects">Projects</option>
+            <option value="Study Help">Study Help</option>
+            <option value="Career / Internships">Career / Internships</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+            <option value="Top Scorers">Top Scorers</option>
+        </select>
+    </div>
+
+    <div class="forum-control-group">
+        <label>Post category</label>
+        <select id="postCategory">
+            <option value="General">General</option>
+            <option value="Projects">Projects</option>
+            <option value="Study Help">Study Help</option>
+            <option value="Career / Internships">Career / Internships</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+            <option value="Top Scorers">Top Scorers</option>
+        </select>
+    </div>
+</div>
+
+        <div class="create-post-box">
+            <input id="postTitle" placeholder="Post title">
+            <textarea id="postContent" placeholder="Write your post..."></textarea>
+            <button onclick="createForumPost()">Create Post</button>
+            <p id="forumMessage" class="subtle"></p>
+        </div>
+
+        <div id="forumPostsList"></div>
+    </div>
+</section>
+
+<section id="forumThreadScreen" class="screen hidden">
+    <div class="card forum-card">
+        <button class="back-link" onclick="openForum()">← Back to Forum</button>
+
+        <div id="threadPost"></div>
+
+        <h2>Comments</h2>
+        <div id="threadComments"></div>
+
+        <div class="create-post-box">
+            <textarea id="commentContent" placeholder="Write a comment..."></textarea>
+            <button onclick="createForumComment()">Post Comment</button>
+            <p id="commentMessage" class="subtle"></p>
+        </div>
+    </div>
+</section>
+
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script src="script.js?v=2"></script>
+<script src="script.js"></script>
 </body>
 </html>
