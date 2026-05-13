@@ -360,7 +360,7 @@ function showResults() {
     recommendationText.textContent =
         `Recommended focus: ${categoryNames[weakestCategory]}.`;
 
-    handleResultAuthState();
+    handleResultAuthState(false);
 }
 
 async function signUp() {
@@ -574,7 +574,7 @@ async function handleResultAuthState() {
     }
 
     authPrompt.classList.add("hidden");
-    await saveScoreToSupabase();
+    saveMessage.textContent = "Score saved to your profile.";
 }
 
 async function trySavePendingScore() {
@@ -1384,6 +1384,8 @@ async function gradeAttempt() {
     sectionScores.ds = data.data_structures_algorithms;
     sectionScores.s = data.systems;
     sectionScores.cc = data.code_comprehension;
+
+    scoreSavedThisSession = true;
 
     showResults();
 }
