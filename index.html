@@ -3,7 +3,7 @@
 
 <head>
     <title> Nexus - CS Benchmark</title>
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
@@ -313,8 +313,18 @@ Please do not access outside resources when taking this test. Completion should 
     </div>
 </section>
 
+<section id="nextStepScreen" class="screen hidden">
+    <div class="card profile-card">
+        <h1 id="nextStepTitle"></h1>
+        <p id="nextStepText" class="subtle"></p>
+
+        <button id="nextStepPrimaryButton"></button>
+        <button id="nextStepSecondaryButton" class="secondary-button"></button>
+    </div>
+</section>
+
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script src="script.js?v=6"></script>
+<script src="script.js?v=7"></script>
 </body>
 </html>
