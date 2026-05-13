@@ -765,3 +765,136 @@ button.secondary-button:hover {
 #threadTitle {
     margin-top: 0;
 }
+
+.forum-card {
+    width: 850px;
+    max-width: 90%;
+    padding: 40px;
+
+    background-color: #161616;
+    box-shadow: 0 0 30px rgba(0,0,0,0.35);
+    border-radius: 16px;
+}
+
+.create-post-box {
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px solid #2f2f2f;
+    border-radius: 14px;
+    background: #101010;
+}
+
+.create-post-box input,
+.create-post-box textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid #2f2f2f;
+    background: #0f0f0f;
+    color: white;
+    font-size: 15px;
+    font-family: inherit;
+}
+
+.create-post-box textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.forum-post {
+    margin-top: 18px;
+    padding: 20px;
+    border: 1px solid #2f2f2f;
+    border-radius: 14px;
+    background: #101010;
+}
+
+.forum-post-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.forum-post h2 {
+    margin: 0;
+}
+
+.forum-category {
+    color: #4f8cff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#forumScreen {
+    justify-content: flex-start;
+}
+
+.forum-comment {
+    margin-top: 14px;
+    padding: 16px;
+    border: 1px solid #2f2f2f;
+    border-radius: 14px;
+    background: #101010;
+}
+
+#forumThreadScreen {
+    justify-content: flex-start;
+}
+
+.clickable-entry {
+    cursor: pointer;
+}
+
+.clickable-entry:hover {
+    background: #181818;
+}
+
+.forum-controls {
+    display: flex;
+    gap: 16px;
+    margin: 18px 0 24px;
+    flex-wrap: wrap;
+}
+
+.forum-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.forum-control-group label {
+    color: #b8b8b8;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.forum-control-group select {
+    min-width: 190px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #2f2f2f;
+    background: #101010;
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.forum-control-group select:focus {
+    outline: none;
+    border-color: #6ea8ff;
+    box-shadow: 0 0 0 3px rgba(110, 168, 255, 0.12);
+}
+
+.profile-link {
+    color: #6ea8ff;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.profile-link:hover {
+    color: white;
+    text-decoration: underline;
+}
