@@ -378,19 +378,60 @@ async function signUp() {
         return;
     }
 
-    message.textContent = "Account created. Check your email if confirmation is enabled.";
+    const newUser = data.user;
 
-        console.log("Signup data:", data);
-    console.log("Signup error:", error);
+    if (newUser) {
+        const { error: profileError } = await supabaseClient
+            .from("profiles")
+            .upsert({
+                id: newUser.id,
+                username: null,
+                display_name: null,
+                school: null,
+                major: null,
+                interests: null,
+                bio: null,
+                updated_at: new Date().toISOString()
+            });
 
-    if (error) {
-        message.textContent = error.message;
-        return;
+        if (profileError) {
+            console.error("Profile creation failed:", profileError);
+            message.textContent = "Account created, but profile setup failed.";
+            return;
+        }
     }
 
     message.textContent = "Account created.";
+
     await updateNavbar();
     await trySavePendingScore();
+
+    if (currentQuestion >= questions.length) {
+        switchScreen(activeScreen, screens.result);
+        await handleResultAuthState();
+    } else {
+        switchScreen(activeScreen, screens.home);
+    }
+}
+
+async function ensureProfileExists() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) return false;
+
+    const { error } = await supabaseClient
+        .from("profiles")
+        .upsert({
+            id: user.id,
+            updated_at: new Date().toISOString()
+        });
+
+    if (error) {
+        console.error("Profile ensure failed:", error);
+        return false;
+    }
+
+    return true;
 }
 
 async function signIn() {
@@ -583,6 +624,9 @@ async function trySavePendingScore() {
     if (currentQuestion < questions.length) return;
 
     if (!userAnswers || userAnswers.length === 0) return;
+
+    const profileReady = await ensureProfileExists();
+    if (!profileReady) return;
 
     await saveScoreToSupabase();
 
@@ -1367,14 +1411,7 @@ async function createForumComment() {
 }
 
 async function gradeAttempt() {
-
-const { data: { user } } = await supabaseClient.auth.getUser();
-
-if (user) {
-    scoreSavedThisSession = true;
-} else {
-    scoreSavedThisSession = false;
-}
+    const { data: { user } } = await supabaseClient.auth.getUser();
 
     const { data, error } = await supabaseClient
         .rpc("grade_attempt", {
@@ -1393,7 +1430,7 @@ if (user) {
     sectionScores.s = data.systems;
     sectionScores.cc = data.code_comprehension;
 
-    scoreSavedThisSession = true;
+    scoreSavedThisSession = !!user;
 
     showResults();
 }
