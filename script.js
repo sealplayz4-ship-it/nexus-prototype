@@ -578,12 +578,11 @@ async function handleResultAuthState() {
 }
 
 async function trySavePendingScore() {
-
     if (scoreSavedThisSession) return;
 
-    if (score <= 0 || currentQuestion < questions.length) {
-        return;
-    }
+    if (currentQuestion < questions.length) return;
+
+    if (!userAnswers || userAnswers.length === 0) return;
 
     await saveScoreToSupabase();
 
@@ -1368,6 +1367,15 @@ async function createForumComment() {
 }
 
 async function gradeAttempt() {
+
+const { data: { user } } = await supabaseClient.auth.getUser();
+
+if (user) {
+    scoreSavedThisSession = true;
+} else {
+    scoreSavedThisSession = false;
+}
+
     const { data, error } = await supabaseClient
         .rpc("grade_attempt", {
             user_answers: userAnswers
