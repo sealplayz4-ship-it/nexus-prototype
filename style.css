@@ -462,6 +462,12 @@ button.secondary-button:hover {
     border-radius: 16px;
 }
 
+.trust-card {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #2a2a2a;
+}
+
 .profile-header {
     margin-bottom: 28px;
 }
