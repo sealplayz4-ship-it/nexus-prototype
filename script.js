@@ -272,6 +272,9 @@ startButton.addEventListener("click", async function () {
     switchScreen(screens.home, screens.section, () => {
         showSection(0);
     });
+
+    // Start button
+await trackEvent("started_test");
 });
 
 function showSection(index) {
@@ -429,6 +432,8 @@ showNextStep({
 } else {
     switchScreen(activeScreen, screens.home);
 }
+// After signup succeeds
+await trackEvent("signed_up");
 }
 
 async function ensureProfileExists() {
@@ -563,6 +568,9 @@ async function openProfile() {
     await loadPrivateCompositeScore();
     await loadPreviousScores();
     switchScreen(activeScreen,screens.profile)
+
+    // In openProfile()
+await trackEvent("opened_profile");
 }
 
 async function loadProfile() {
@@ -589,6 +597,11 @@ async function loadProfile() {
     document.getElementById("profileMajor").value = data.major || "";
     document.getElementById("profileInterests").value = data.interests || "";
     document.getElementById("profileBio").value = data.bio || "";
+
+    const trustLevel = data.trust_level || 0;
+
+document.getElementById("privateTrustLevel").textContent =
+    `Level ${trustLevel} · ${getTrustLabel(trustLevel)}`;
 }
 
 async function saveProfile() {
@@ -645,6 +658,8 @@ const wasIncomplete =
         secondaryAction: () => switchScreen(activeScreen, screens.profile)
     });
 }
+// After saveProfile succeeds
+await trackEvent("updated_profile");
 }
 
 async function saveScoreToSupabase() {
@@ -682,6 +697,11 @@ async function saveScoreToSupabase() {
     message.textContent = "Score saved to your profile.";
 
     await loadPreviousScores();
+
+    // After pending score saves successfully
+await trackEvent("saved_score", {
+    score
+});
 }
 
 async function handleResultAuthState() {
@@ -800,6 +820,11 @@ async function openPublicProfile(userId) {
 
     document.getElementById("publicBio").textContent =
         data.bio || "No bio yet.";
+
+        const trustLevel = data.trust_level || 0;
+
+document.getElementById("publicTrustLevel").textContent =
+    `Level ${trustLevel} · ${getTrustLabel(trustLevel)}`;
 
         const compositeContainer = document.getElementById("publicCompositeScore");
 
@@ -940,6 +965,9 @@ async function sendMessageToPublicProfile() {
         type: "direct_message",
         content: "You received a new message."
     });
+
+    // After message insert succeeds
+await trackEvent("sent_message");
 }
 
 async function loadInbox() {
@@ -1116,6 +1144,7 @@ async function openInbox() {
     await markNotificationsRead("direct_message");
     await loadInbox();
     switchScreen(activeScreen, screens.inbox);
+    await trackEvent("opened_inbox");
 }
 
 async function sendThreadReply() {
@@ -1168,6 +1197,8 @@ async function sendThreadReply() {
         type: "direct_message",
         content: "You received a new message."
     });
+    // After message insert succeeds
+    await trackEvent("sent_message");
 }
 
 async function loadForumPosts() {
@@ -1177,15 +1208,15 @@ async function loadForumPosts() {
 
    let query = supabaseClient
     .from("forum_posts")
-    .select(`
-        *,
-        profiles (
-            username,
-            display_name,
-            major,
-            school
-        )
-    `)
+.select(`
+    *,
+    profiles!forum_posts_user_id_fkey (
+        username,
+        display_name,
+        major,
+        school
+    )
+`)
     .eq("hidden", false)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -1315,6 +1346,11 @@ async function createForumPost() {
     message.textContent = "Post created.";
 
     await loadForumPosts();
+
+    // After createForumPost succeeds
+await trackEvent("created_forum_post", {
+    category
+});
 }
 
 async function openForum() {
@@ -1334,15 +1370,15 @@ async function openForumThread(postId) {
 
     const { data: post, error: postError } = await supabaseClient
         .from("forum_posts")
-        .select(`
-            *,
-            profiles (
-                username,
-                display_name,
-                major,
-                school
-            )
-        `)
+.select(`
+    *,
+    profiles!forum_posts_user_id_fkey (
+        username,
+        display_name,
+        major,
+        school
+    )
+`)
         .eq("id", postId)
         .single();
 
@@ -1371,26 +1407,53 @@ const compositeBadge = composite
     ? ` · Composite: ${Number(composite.composite_percentile).toFixed(2)}%`
     : "";
 
-    threadPost.innerHTML = `
-        <div class="forum-post">
-            <div class="forum-post-header">
-                <div>
-                    <h2>${post.title}</h2>
-                    <p class="subtle">
-                        <span class="profile-link" data-user-id="${post.user_id}">
-                        ${author}
-                        </span>
-                         · ${post.profiles?.major || "Unknown major"} ·
-                        ${compositeBadge}
-                         · ${new Date(post.created_at).toLocaleDateString()}
-                     </p>
-                </div>
-                <span class="forum-category">${post.category || "General"}</span>
-            </div>
+    const { data: { user } } = await supabaseClient.auth.getUser();
 
-            <p>${post.content}</p>
+let isModerator = false;
+
+if (user) {
+    const { data: moderatorStatus, error: moderatorError } = await supabaseClient
+        .rpc("is_moderator");
+
+    if (!moderatorError) {
+        isModerator = moderatorStatus;
+    }
+}
+
+const canDeletePost =
+    user &&
+    (post.user_id === user.id || isModerator);
+
+const deletePostButtonHTML = canDeletePost
+    ? `
+        <button class="secondary-button" onclick="hideForumPost(${post.id})">
+            Delete Thread
+        </button>
+      `
+    : "";
+
+threadPost.innerHTML = `
+    <div class="forum-post">
+        <div class="forum-post-header">
+            <div>
+                <h2>${post.title}</h2>
+                <p class="subtle">
+                    <span class="profile-link" data-user-id="${post.user_id}">
+                    ${author}
+                    </span>
+                     · ${post.profiles?.major || "Unknown major"}
+                    ${compositeBadge}
+                     · ${new Date(post.created_at).toLocaleDateString()}
+                 </p>
+            </div>
+            <span class="forum-category">${post.category || "General"}</span>
         </div>
-    `;
+
+        <p>${post.content}</p>
+
+        ${deletePostButtonHTML}
+    </div>
+`;
 
     const profileLink = threadPost.querySelector(".profile-link");
 
@@ -1405,24 +1468,41 @@ profileLink.addEventListener("click", (event) => {
     document.getElementById("commentMessage").textContent = "";
 
     switchScreen(activeScreen, screens.forumThread);
+
+    // In openForum()
+await trackEvent("opened_forum");
 }
 
 async function loadForumComments(postId) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+let isModerator = false;
+
+if (user) {
+    const { data: moderatorStatus, error: moderatorError } = await supabaseClient
+        .rpc("is_moderator");
+
+    if (!moderatorError) {
+        isModerator = moderatorStatus;
+    }
+}
+
+
     const threadComments = document.getElementById("threadComments");
 
     threadComments.innerHTML = "<p class='subtle'>Loading comments...</p>";
 
     const { data, error } = await supabaseClient
         .from("forum_comments")
-        .select(`
-            *,
-            profiles (
-                username,
-                display_name,
-                major,
-                school
-            )
-        `)
+.select(`
+    *,
+profiles!forum_comments_user_id_fkey (
+    username,
+    display_name,
+    major,
+    school
+)
+`)
         .eq("post_id", postId)
         .eq("hidden", false)
         .order("created_at", { ascending: true });
@@ -1449,6 +1529,18 @@ async function loadForumComments(postId) {
         const commentEl = document.createElement("div");
         commentEl.classList.add("forum-comment");
 
+        const canDelete =
+    user &&
+    (comment.user_id === user.id || isModerator);
+
+const deleteButtonHTML = canDelete
+    ? `
+        <button class="secondary-button" onclick="hideForumComment(${comment.id})">
+            Delete
+        </button>
+      `
+    : "";
+
 commentEl.innerHTML = `
     <div class="message-header">
         <strong>
@@ -1458,7 +1550,10 @@ commentEl.innerHTML = `
         </strong>
         <span class="score-date">${new Date(comment.created_at).toLocaleDateString()}</span>
     </div>
+
     <p>${comment.content}</p>
+
+    ${deleteButtonHTML}
 `;
 
 const profileLink = commentEl.querySelector(".profile-link");
@@ -1528,6 +1623,11 @@ async function createForumComment() {
 }
 
     await loadForumComments(currentForumPostId);
+
+    // After createForumComment succeeds
+await trackEvent("created_forum_comment", {
+    post_id: currentForumPostId
+});
 }
 
 async function gradeAttempt() {
@@ -1553,6 +1653,12 @@ async function gradeAttempt() {
     scoreSavedThisSession = !!user;
 
     showResults();
+
+    // After gradeAttempt succeeds
+await trackEvent("completed_test", {
+    score,
+    total_questions: questions.length
+});
 }
 
 function renderCompositeScore(container, composite, showExplanation = false) {
@@ -1675,6 +1781,77 @@ function showNextStep({ title, text, primaryText, primaryAction, secondaryText, 
     secondaryButton.onclick = secondaryAction;
 
     switchScreen(activeScreen, screens.nextStep);
+}
+
+async function hideForumComment(commentId) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+        alert("You must be signed in to delete comments.");
+        return;
+    }
+const { data, error } = await supabaseClient
+    .from("forum_comments")
+    .update({
+        hidden: true,
+        hidden_at: new Date().toISOString(),
+        hidden_by: user.id
+    })
+    .eq("id", commentId)
+    .select();
+
+if (error) {
+    console.error("Comment delete failed:", error);
+    alert("You do not have permission to delete this comment.");
+    return;
+}
+
+if (!data || data.length === 0) {
+    alert("You do not have permission to delete this comment.");
+    return;
+}
+
+await loadForumComments(currentForumPostId);
+}
+
+async function hideForumPost(postId) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+        alert("You must be signed in to delete posts.");
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from("forum_posts")
+        .update({
+            hidden: true,
+            hidden_at: new Date().toISOString(),
+            hidden_by: user.id
+        })
+        .eq("id", postId)
+        .select();
+
+    if (error) {
+        console.error("Post delete failed:", error);
+        alert("You do not have permission to delete this post.");
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        alert("You do not have permission to delete this post.");
+        return;
+    }
+
+    await openForum();
+}
+
+function getTrustLabel(level) {
+    if (level >= 4) return "Veteran";
+    if (level === 3) return "Contributor";
+    if (level === 2) return "Active Member";
+    if (level === 1) return "New Member";
+    return "Unranked";
 }
 
 const screens = {
