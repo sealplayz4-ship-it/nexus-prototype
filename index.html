@@ -3,7 +3,7 @@
 
 <head>
     <title> Nexus - CS Benchmark</title>
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
@@ -303,6 +303,15 @@ Please do not access outside resources when taking this test. Completion should 
             <option value="Top Scorers">Top Scorers</option>
         </select>
     </div>
+
+    <div class="forum-control-group">
+        <label>Filter Method</label>
+<select id="forumSortFilter" onchange="loadForumPosts()">
+    <option value="latest">Latest</option>
+    <option value="popular">Popular</option>
+</select>
+    </div>
+
 </div>
 
         <div class="create-post-box">
@@ -345,6 +354,6 @@ Please do not access outside resources when taking this test. Completion should 
 
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script src="script.js?v=8"></script>
+<script src="script.js?v=9"></script>
 </body>
 </html>
