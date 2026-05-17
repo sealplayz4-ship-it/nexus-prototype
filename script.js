@@ -1203,31 +1203,41 @@ async function sendThreadReply() {
 
 async function loadForumPosts() {
     const postsList = document.getElementById("forumPostsList");
-
     postsList.innerHTML = "<p class='subtle'>Loading posts...</p>";
 
-   let query = supabaseClient
-    .from("forum_posts")
-.select(`
-    *,
-    profiles!forum_posts_user_id_fkey (
-        username,
-        display_name,
-        major,
-        school
-    )
-`)
-    .eq("hidden", false)
-    .order("created_at", { ascending: false })
-    .limit(50);
+    const selectedCategory = document.getElementById("forumCategoryFilter").value;
+    const selectedSort = document.getElementById("forumSortFilter").value;
 
-const selectedCategory = document.getElementById("forumCategoryFilter").value;
+    let data;
+    let error;
 
-if (selectedCategory !== "All") {
-    query = query.eq("category", selectedCategory);
-}
+    if (selectedSort === "popular") {
+        ({ data, error } = await supabaseClient
+            .rpc("get_popular_forum_posts", {
+                selected_category: selectedCategory
+            }));
+    } else {
+        let query = supabaseClient
+            .from("forum_posts")
+            .select(`
+                *,
+                profiles!forum_posts_user_id_fkey (
+                    username,
+                    display_name,
+                    major,
+                    school
+                )
+            `)
+            .eq("hidden", false)
+            .order("created_at", { ascending: false })
+            .limit(50);
 
-const { data, error } = await query;
+        if (selectedCategory !== "All") {
+            query = query.eq("category", selectedCategory);
+        }
+
+        ({ data, error } = await query);
+    }
 
     if (error) {
         console.error("Forum load failed:", error);
@@ -1239,6 +1249,12 @@ const { data, error } = await query;
         postsList.innerHTML = "<p class='subtle'>No posts yet. Be the first to post.</p>";
         return;
     }
+
+    renderForumPosts(data);
+}
+
+async function renderForumPosts(data) {
+    const postsList = document.getElementById("forumPostsList");
 
     postsList.innerHTML = "";
 
@@ -1257,13 +1273,57 @@ if (!compositeError && compositeRows) {
     });
 }
 
+const postIds = data.map(post => post.id);
+
+const { data: commentRows, error: commentCountError } = await supabaseClient
+    .from("forum_comments")
+    .select("post_id")
+    .in("post_id", postIds)
+    .eq("hidden", false);
+
+const replyCountMap = new Map();
+
+if (!commentCountError && commentRows) {
+    commentRows.forEach(comment => {
+        replyCountMap.set(
+            comment.post_id,
+            (replyCountMap.get(comment.post_id) || 0) + 1
+        );
+    });
+}
+
+const { data: upvoteRows, error: upvoteError } = await supabaseClient
+    .from("forum_post_upvotes")
+    .select("post_id")
+    .in("post_id", postIds);
+
+const upvoteCountMap = new Map();
+
+if (!upvoteError && upvoteRows) {
+    upvoteRows.forEach(vote => {
+        upvoteCountMap.set(
+            vote.post_id,
+            (upvoteCountMap.get(vote.post_id) || 0) + 1
+        );
+    });
+}
+
     data.forEach(post => {
         const author =
-            post.profiles?.display_name ||
-            post.profiles?.username ||
+    post.profiles?.display_name ||
+    post.profiles?.username ||
+    post.display_name ||
+    post.username ||
             "Unknown User";
 
         const composite = compositeMap.get(post.user_id);
+
+        const replyCount = replyCountMap.get(post.id) || 0;
+
+        const upvoteCount = upvoteCountMap.get(post.id) || 0;
+
+const replyText =
+    replyCount === 1 ? "1 reply" : `${replyCount} replies`;
 
 const compositeBadge = composite
     ? ` · Composite: ${Number(composite.composite_percentile).toFixed(2)}%`
@@ -1286,12 +1346,24 @@ postEl.innerHTML = `
                 <span class="profile-link" data-user-id="${post.user_id}">
                     ${author}
                 </span>
-                · ${post.profiles?.major || "Unknown major"}
+                · ${post.profiles?.major || post.major || "Unknown major"}
                 ${compositeBadge}
                 · ${new Date(post.created_at).toLocaleDateString()}
             </p>
         </div>
-        <span class="forum-category">${post.category || "General"}</span>
+<div class="forum-post-meta-right">
+    <span class="forum-replies">
+        ▲ ${upvoteCount}
+    </span>
+
+    <span class="forum-replies">
+       💬 ${replyCount}
+    </span>
+
+    <span class="forum-category">
+        ${post.category || "General"}
+    </span>
+</div>
     </div>
 
     <p>${post.content}</p>
@@ -1432,6 +1504,45 @@ const deletePostButtonHTML = canDeletePost
       `
     : "";
 
+const displayedPostContent = post.edited_content || post.content;
+
+const canEditPost =
+    user &&
+    post.user_id === user.id;
+
+const editPostButtonHTML = canEditPost
+    ? `
+        <button
+            class="secondary-button edit-post-button"
+            data-post-id="${post.id}"
+        >
+            Edit Thread
+        </button>
+      `
+    : "";
+
+    const {data: upvoteRows, error: upvoteError } = await supabaseClient
+    .from("forum_post_upvotes")
+    .select("user_id")
+    .eq("post_id", postId);
+
+    const postUpvoteCount = upvoteRows ? upvoteRows.length : 0;
+
+    const hasUpvoted =  user && upvoteRows?.some(vote => vote.user_id === user.id);
+
+const upvoteButtonHTML = user
+    ? `
+        <button
+            class="secondary-button post-upvote-button ${hasUpvoted ? "active-upvote" : ""}"
+            data-upvoted="${hasUpvoted}"
+        >
+            ▲ ${postUpvoteCount}
+        </button>
+      `
+    : `<span class="forum-replies">▲ ${postUpvoteCount}</span>`;
+
+
+
 threadPost.innerHTML = `
     <div class="forum-post">
         <div class="forum-post-header">
@@ -1444,16 +1555,37 @@ threadPost.innerHTML = `
                      · ${post.profiles?.major || "Unknown major"}
                     ${compositeBadge}
                      · ${new Date(post.created_at).toLocaleDateString()}
+                     ${post.edited_at ? " · edited" : ""}
                  </p>
             </div>
             <span class="forum-category">${post.category || "General"}</span>
         </div>
 
-        <p>${post.content}</p>
+        <div id="postContent-${post.id}">
+            <p>${displayedPostContent}</p>
+        </div>
 
-        ${deletePostButtonHTML}
+        <div class="comment-actions" id="postActions-${post.id}">
+            ${upvoteButtonHTML}
+            ${editPostButtonHTML}
+            ${deletePostButtonHTML}
+        </div>
     </div>
 `;
+
+const upvoteButton = threadPost.querySelector(".post-upvote-button");
+
+upvoteButton.addEventListener("click", () => {
+    togglePostUpvote(post.id, upvoteButton);
+});
+
+const editButton = threadPost.querySelector(".edit-post-button");
+
+if (editButton) {
+    editButton.addEventListener("click", () => {
+        showEditPostUI(post.id, displayedPostContent);
+    });
+}
 
     const profileLink = threadPost.querySelector(".profile-link");
 
@@ -1518,6 +1650,29 @@ profiles!forum_comments_user_id_fkey (
         return;
     }
 
+    const commentIds = data.map(comment => comment.id);
+
+const { data: upvoteRows, error: upvoteError } = await supabaseClient
+    .from("forum_comment_upvotes")
+    .select("comment_id, user_id")
+    .in("comment_id", commentIds);
+
+const upvoteCountMap = new Map();
+const userUpvotedSet = new Set();
+
+if (!upvoteError && upvoteRows) {
+    upvoteRows.forEach(vote => {
+        upvoteCountMap.set(
+            vote.comment_id,
+            (upvoteCountMap.get(vote.comment_id) || 0) + 1
+        );
+
+        if (user && vote.user_id === user.id) {
+            userUpvotedSet.add(vote.comment_id);
+        }
+    });
+}
+
     threadComments.innerHTML = "";
 
     data.forEach(comment => {
@@ -1541,6 +1696,37 @@ const deleteButtonHTML = canDelete
       `
     : "";
 
+const displayedContent = comment.edited_content || comment.content;
+
+const upvoteCount = upvoteCountMap.get(comment.id) || 0;
+const hasUpvoted = userUpvotedSet.has(comment.id);
+
+const upvoteButtonHTML = user
+    ? `
+        <button
+            class="secondary-button comment-upvote-button ${hasUpvoted ? "active-upvote" : ""}"
+            data-comment-id="${comment.id}"
+        >
+            ▲ ${upvoteCount}
+        </button>
+      `
+    : `<span class="forum-replies">▲ ${upvoteCount}</span>`;
+
+const canEdit =
+    user &&
+    comment.user_id === user.id;
+
+const editButtonHTML = canEdit
+    ? `
+        <button
+            class="secondary-button edit-comment-button"
+            data-comment-id="${comment.id}"
+        >
+            Edit
+        </button>
+      `
+    : "";
+
 commentEl.innerHTML = `
     <div class="message-header">
         <strong>
@@ -1548,12 +1734,22 @@ commentEl.innerHTML = `
                 ${author}
             </span>
         </strong>
-        <span class="score-date">${new Date(comment.created_at).toLocaleDateString()}</span>
+
+        <span class="score-date">
+            ${new Date(comment.created_at).toLocaleDateString()}
+            ${comment.edited_at ? " · edited" : ""}
+        </span>
     </div>
 
-    <p>${comment.content}</p>
+    <div id="commentContent-${comment.id}">
+        <p>${displayedContent}</p>
+    </div>
 
+<div class="comment-actions" id="commentActions-${comment.id}">
+    ${upvoteButtonHTML}
+    ${editButtonHTML}
     ${deleteButtonHTML}
+</div>
 `;
 
 const profileLink = commentEl.querySelector(".profile-link");
@@ -1563,7 +1759,112 @@ profileLink.addEventListener("click", () => {
 });
 
         threadComments.appendChild(commentEl);
+
+        const upvoteButton = commentEl.querySelector(".comment-upvote-button");
+
+if (upvoteButton) {
+    upvoteButton.addEventListener("click", () => {
+        toggleCommentUpvote(comment.id, hasUpvoted);
     });
+}
+
+        const editButton = commentEl.querySelector(".edit-comment-button");
+
+if (editButton) {
+    editButton.addEventListener("click", () => {
+        showEditCommentUI(comment.id, displayedContent);
+    });
+}
+
+    });
+}
+
+async function toggleCommentUpvote(commentId, hasUpvoted) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+        alert("Sign in to upvote comments.");
+        return;
+    }
+
+    let error;
+
+    if (hasUpvoted) {
+        ({ error } = await supabaseClient
+            .from("forum_comment_upvotes")
+            .delete()
+            .eq("comment_id", commentId)
+            .eq("user_id", user.id));
+    } else {
+        ({ error } = await supabaseClient
+            .from("forum_comment_upvotes")
+            .insert({
+                comment_id: commentId,
+                user_id: user.id
+            }));
+    }
+
+    if (error) {
+        console.error("Comment upvote failed:", error);
+        return;
+    }
+
+    await loadForumComments(currentForumPostId);
+}
+
+async function togglePostUpvote(postId, button) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+        alert("Sign in to upvote posts.");
+        return;
+    }
+
+    const hasUpvoted =
+        button.dataset.upvoted === "true";
+
+    let error;
+
+    if (hasUpvoted) {
+        ({ error } = await supabaseClient
+            .from("forum_post_upvotes")
+            .delete()
+            .eq("post_id", postId)
+            .eq("user_id", user.id));
+    } else {
+        ({ error } = await supabaseClient
+            .from("forum_post_upvotes")
+            .upsert(
+                {
+                    post_id: postId,
+                    user_id: user.id
+                },
+                {
+                    onConflict: "post_id,user_id"
+                }
+            ));
+    }
+
+    if (error) {
+        console.error("Post upvote failed:", error);
+        return;
+    }
+
+    let currentCount = parseInt(
+        button.textContent.replace("▲", "").trim()
+    );
+
+    if (hasUpvoted) {
+        currentCount--;
+        button.classList.remove("active-upvote");
+        button.dataset.upvoted = "false";
+    } else {
+        currentCount++;
+        button.classList.add("active-upvote");
+        button.dataset.upvoted = "true";
+    }
+
+    button.textContent = `▲ ${currentCount}`;
 }
 
 async function createForumComment() {
@@ -1854,6 +2155,122 @@ function getTrustLabel(level) {
     return "Unranked";
 }
 
+async function editForumComment(commentId) {
+    const textarea = document.getElementById(`editTextarea-${commentId}`);
+
+    if (!textarea) {
+        alert("Could not find edit box.");
+        return;
+    }
+
+    const trimmedContent = textarea.value.trim();
+
+    if (!trimmedContent) {
+        alert("Comment cannot be empty.");
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from("forum_comments")
+        .update({
+            edited_content: trimmedContent,
+            edited_at: new Date().toISOString()
+        })
+        .eq("id", commentId)
+        .select();
+
+    if (error || !data || data.length === 0) {
+        console.error("Comment edit failed:", error);
+        alert("You do not have permission to edit this comment.");
+        return;
+    }
+
+    await loadForumComments(currentForumPostId);
+}
+
+async function editForumPost(postId) {
+    const textarea = document.getElementById(`editPostTextarea-${postId}`);
+
+    if (!textarea) {
+        alert("Could not find edit box.");
+        return;
+    }
+
+    const trimmedContent = textarea.value.trim();
+
+    if (!trimmedContent) {
+        alert("Post cannot be empty.");
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from("forum_posts")
+        .update({
+            edited_content: trimmedContent,
+            edited_at: new Date().toISOString()
+        })
+        .eq("id", postId)
+        .select();
+
+    if (error || !data || data.length === 0) {
+        console.error("Post edit failed:", error);
+        alert("You do not have permission to edit this post.");
+        return;
+    }
+
+    await openForumThread(postId);
+}
+
+function showEditCommentUI(commentId, currentContent) {
+    const contentEl = document.getElementById(`commentContent-${commentId}`);
+    const actionsEl = document.getElementById(`commentActions-${commentId}`);
+
+    if (!contentEl) return;
+
+    if (actionsEl) {
+        actionsEl.classList.add("hidden");
+    }
+
+    contentEl.innerHTML = `
+        <textarea id="editTextarea-${commentId}" class="comment-edit-box">${currentContent}</textarea>
+
+        <div class="edit-actions">
+            <button class="secondary-button" onclick="editForumComment(${commentId})">
+                Save
+            </button>
+
+            <button class="secondary-button" onclick="loadForumComments(currentForumPostId)">
+                Cancel
+            </button>
+        </div>
+    `;
+}
+
+function showEditPostUI(postId, currentContent) {
+    const contentEl = document.getElementById(`postContent-${postId}`);
+    const actionsEl = document.getElementById(`postActions-${postId}`);
+
+    if (!contentEl) return;
+
+    if (actionsEl) {
+        actionsEl.classList.add("hidden");
+    }
+
+    contentEl.innerHTML = `
+        <textarea id="editPostTextarea-${postId}" class="comment-edit-box">${currentContent}</textarea>
+
+        <div class="edit-actions">
+            <button class="secondary-button" onclick="editForumPost(${postId})">
+                Save
+            </button>
+
+            <button class="secondary-button" onclick="openForumThread(${postId})">
+                Cancel
+            </button>
+        </div>
+    `;
+}
+
 const screens = {
     home: document.getElementById("homeScreen"),
     test: document.getElementById("testScreen"),
@@ -1967,3 +2384,4 @@ document.getElementById("navForum")
 
 document.getElementById("inboxNavButton")
 .addEventListener("click", openInbox);
+
